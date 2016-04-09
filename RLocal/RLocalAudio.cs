@@ -132,45 +132,18 @@ namespace DesktopDup
         public RLocalAudioPlayback(WaveFormatExtensible waveFormat)
         {
             soundOut = new CSCore.SoundOut.WasapiOut(true, AudioClientShareMode.Exclusive, 100);
-            //soundOut = new CSCore.SoundOut.DirectSoundOut(100);
-
-            //RLocalIWaveSource soundSource = new RLocalIWaveSource(capture.WaveFormat, bufferSize);
-
-            //var Resampler = new WMResampler();
-            //var mediaObject = Resampler.MediaObject;
-            //if (waveFormat is WaveFormatExtensible)
-            //    waveFormat = (waveFormat as WaveFormatExtensible).ToWaveFormat();
-            //MediaType mediaType = MediaType.FromWaveFormat(waveFormat);
-            //int result = mediaObject.SetInputTypeNative(0, mediaType, SetTypeFlags.TestOnly);
-            //Console.WriteLine("Result: " + (DmoErrorCodes)result);
 
             int bufferSize = waveFormat.BytesPerSecond * 5;
             audioSource = new RLocalIWaveSource(waveFormat, bufferSize, 20);
 
             soundOut.Initialize(audioSource);
-
-            //Create a ISampleSource
-
-            //Convert the ISampleSource into a IWaveSource
-            //IWaveSource soundSource = sampleSource.ToWaveSource();
-
-            //Thread.Sleep(2000);
-
-            //Stop the playback
-            //soundOut.Stop();
         }
 
         public async void Play(int latency)
         {
             return;
-            //await Task.Delay(latency);
-            //ThreadPool.QueueUserWorkItem(new WaitCallback(stateInfo =>
-            //{
-            //    Thread.Sleep(latency);
             isPlaying = true;
             soundOut.Play();
-            //soundOut.
-            //}));
         }
 
         public void Stop()
