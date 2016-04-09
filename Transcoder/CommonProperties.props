@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <IncludePath>$(ProjectDir)Dependencies\ffmpeg\include;$(ProjectDir)Dependencies\x264;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)Dependencies\x264;$(ProjectDir)Dependencies\ffmpeg\lib;$(LibraryPath)</LibraryPath>
+    <OutDir>$(SolutionDir)RLocal\$(Platform)\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <Link>
+      <AdditionalDependencies>avcodec.lib;avdevice.lib;avfilter.lib;avformat.lib;avutil.lib;postproc.lib;swresample.lib;swscale.lib;libx264.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>for /R "$(ProjectDir)Dependencies\ffmpeg\bin" %%f in (*.dll) do cp "%%f" "$(SolutionDir)RLocal\$(PlatformTarget)\$(Configuration)"</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup />
+</Project>
