@@ -12,20 +12,14 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 
-namespace DesktopDup
+namespace RLocal
 {
-    public struct Client
+    public struct RLocalClient
     {
         public TcpClient tcp;
         public NetworkStream stream;
         public int playerId;
     }
-
-    /*public struct Message
-    {
-        public byte[] bytes;
-        public int size;
-    }*/
 
     public struct RLocalIncomingMessage
     {
@@ -37,12 +31,12 @@ namespace DesktopDup
     class RLocalConnection
     {
         TcpListener m_server;
-        Client m_client;
+        RLocalClient m_client;
         public byte[] ReadBuffer;
         public byte[] m_writeBuffer;
         //public IntPtr m_readBufferPtr;
         //public IntPtr m_writeBufferPtr;
-        List<Client> m_clients;
+        List<RLocalClient> m_clients;
         public bool isServer;
         List<int> playerIds;
 
@@ -50,15 +44,19 @@ namespace DesktopDup
 
         //Action<Client> NewClientHandler;
         public int packetsSent = 0;
+        //IntPtr m_writeBufferPtr;
 
-        public RLocalConnection()
+        public RLocalConnection(int bufferSize=9999999)
         {
             ReadHandlerQueue = new BlockingCollection<RLocalIncomingMessage>();
             ReadBuffer = new Byte[8];
-            m_writeBuffer = new Byte[9999999];
+            m_writeBuffer = new Byte[bufferSize];
+
+            //GCHandle pinned = GCHandle.Alloc(m_writeBuffer, GCHandleType.Pinned);
+            //m_writeBufferPtr = pinned.AddrOfPinnedObject();
 
             playerIds = new List<int>();
-            m_clients = new List<Client>();
+            m_clients = new List<RLocalClient>();
         }
 
         public void StartServer(IPAddress address, int port, RunWorkerCompletedEventHandler ReceiveClient)
@@ -67,10 +65,10 @@ namespace DesktopDup
             m_server = new TcpListener(address, port);
             m_server.Start();
 
-            BackgroundWorker worker = new BackgroundWorker();
+            var worker = new BackgroundWorker();
             worker.DoWork += new DoWorkEventHandler((object sender, DoWorkEventArgs eargs) =>
             {
-                Client client = ReceiveNextClient();
+                RLocalClient client = ReceiveNextClient();
                 eargs.Result = client;
             });
             worker.RunWorkerCompleted += ReceiveClient;
@@ -84,7 +82,7 @@ namespace DesktopDup
         public void StartClient(IPAddress host, int port, RunWorkerCompletedEventHandler PacketHandler)
         {
             isServer = false;
-            TcpClient client = new TcpClient(host.ToString(), port);
+            var client = new TcpClient(host.ToString(), port);
             m_client = BuildClient(client, 0);
 
             StartReaderWorker(m_client, PacketHandler);
@@ -93,7 +91,7 @@ namespace DesktopDup
         public void BroadcastBytes(byte[] bytes, int size)
         {
             if (bytes == null) bytes = m_writeBuffer;
-            m_clients.ForEach(delegate (Client c)
+            m_clients.ForEach(delegate (RLocalClient c)
             {
                 c.stream.Write(bytes, 0, size);
             });
@@ -117,32 +115,34 @@ namespace DesktopDup
             return playerId;
         }
 
-        private Client ReceiveNextClient()
+        private RLocalClient ReceiveNextClient()
         {
             TcpClient tcpClient = m_server.AcceptTcpClient();
             NetworkStream stream = tcpClient.GetStream();
 
-            Client client = BuildClient(tcpClient, GetAvailablePlayerId());
+            var client = BuildClient(tcpClient, GetAvailablePlayerId());
             m_clients.Add(client);
 
             return client;
         }
 
-        public Client BuildClient(TcpClient tcpClient, int playerId)
+        public RLocalClient BuildClient(TcpClient tcpClient, int playerId)
         {
-            Client client = new Client();
+            var client = new RLocalClient();
             client.tcp = tcpClient;
             client.stream = tcpClient.GetStream();
             client.playerId = playerId;
             return client;
         }
 
-        public void StartReaderWorker(Client client, RunWorkerCompletedEventHandler PacketHandler)
+        public void StartReaderWorker(RLocalClient client, RunWorkerCompletedEventHandler PacketHandler)
         {
             BackgroundWorker worker = new BackgroundWorker();
             worker.DoWork += new DoWorkEventHandler((object sender, DoWorkEventArgs eargs) =>
             {
-                byte[] bytes = ReadBytes(client.stream);
+                byte[] bytes = null;
+                ReadBytes(client, out bytes);
+                if (bytes == null) return;
 
                 RLocalIncomingMessage message = new RLocalIncomingMessage();
                 message.bytes = bytes;
@@ -154,33 +154,33 @@ namespace DesktopDup
             worker.RunWorkerCompleted += PacketHandler;
             worker.RunWorkerCompleted += new RunWorkerCompletedEventHandler((object sender, RunWorkerCompletedEventArgs e) =>
             {
+                if (e.Result == null) return;
                 worker.RunWorkerAsync();
             });
             worker.RunWorkerAsync();
         }
 
-        public void HandlePacket()
+        public void ReadBytes(RLocalClient client, out byte[] bytes)
         {
+            try {
+                client.stream.Read(ReadBuffer, 0, 8);
+                int sizeOfPacket = BitConverter.ToInt32(ReadBuffer, 4);
 
-        }
+                if (ReadBuffer.Length < 8 + sizeOfPacket) Array.Resize<byte>(ref ReadBuffer, 8 + sizeOfPacket);
 
-        public byte[] ReadBytes(NetworkStream stream)
-        {
-            stream.Read(ReadBuffer, 0, 8);
-            int sizeOfPacket = BitConverter.ToInt32(ReadBuffer, 4);
+                int amountRead = 0;
+                while (amountRead < sizeOfPacket)
+                {
+                    amountRead += client.stream.Read(ReadBuffer, amountRead + 8, sizeOfPacket - amountRead);
+                }
 
-            if (ReadBuffer.Length < 8 + sizeOfPacket) Array.Resize<byte>(ref ReadBuffer, 8 + sizeOfPacket);
-
-            int amountRead = 0;
-            while (amountRead < sizeOfPacket)
+                bytes = new byte[8 + amountRead];
+                Array.Copy(ReadBuffer, bytes, 8 + amountRead);
+            } catch
             {
-                amountRead += stream.Read(ReadBuffer, amountRead + 8, sizeOfPacket - amountRead);
+                bytes = null;
+                m_clients.Remove(client);
             }
-
-            byte[] bytes = new byte[8 + amountRead];
-            Array.Copy(ReadBuffer, bytes, 8 + amountRead);
-
-            return bytes;
         }
     }
 }

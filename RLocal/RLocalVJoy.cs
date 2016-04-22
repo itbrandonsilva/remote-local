@@ -7,7 +7,7 @@ using SharpDX.DirectInput;
 
 using vJoyInterfaceWrap;
 
-namespace DesktopDup
+namespace RLocal
 {
     class RLocalVJoy
     {

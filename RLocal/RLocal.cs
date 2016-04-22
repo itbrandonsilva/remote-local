@@ -23,7 +23,7 @@ public struct RLocalOptions
     public int outHeight;
 }
 
-namespace DesktopDup
+namespace RLocal
 {
     public partial class RLocal : Form
     {
@@ -33,6 +33,7 @@ namespace DesktopDup
         RLocalDesktopCapture videoCapture;
         RLocalAudioCapture audioCapture;
         RLocalAudioPlayback audioPlayback;
+        RLocalInputManager inputManager;
 
         RLocalOptions options;
 
@@ -53,6 +54,21 @@ namespace DesktopDup
             }
 
             MonitorComboBox.SelectedIndex = 0;
+
+            inputManager = new RLocalInputManager();
+            inputManager.DiscoverInputDevices().ForEach(input =>
+            {
+                InputSourceComboBox.Items.Add(input.name);
+            });
+            InputSourceComboBox.SelectedIndex = 0;
+
+            //var playback = new RLocalAudioCapture();
+
+            //inputManager.AssignDevice(1);
+            //while (true)
+            //{
+            //    inputManager.PollInputs();
+            //}
         }
 
         private void Start(bool server)
@@ -64,36 +80,67 @@ namespace DesktopDup
 
             if (server) StartServer();
             else StartClient();
-
-            //RenderLoop();
         }
 
         private void StartClient()
         {
+            inputManager.AssignDevice(InputSourceComboBox.SelectedIndex);
             connection.StartClient(options.hostAddress, options.port, new RunWorkerCompletedEventHandler(PacketHandler));
             AsyncProcessInputs();
-            //RenderLoop();
+        }
+
+        private async void EncodeAndBroadcastFrame()
+        {
+            await Task.Run(() =>
+            {
+                var locked = !Monitor.TryEnter(transcoder);
+                if (!locked)
+                {
+                    int s = transcoder.EncodeFrame(videoCapture.FrameBytes, connection.m_writeBuffer);
+                    connection.BroadcastBytes(null, s);
+                    Monitor.Exit(transcoder);
+                }
+            });
         }
 
         private void StartServer()
         {
+            connection.StartServer(options.bindAddress, options.port, new RunWorkerCompletedEventHandler(NewClientHandler));
+
             videoCapture = new RLocalDesktopCapture(MonitorComboBox.SelectedIndex);
             AllocTranscoderContext();
-            DecodedBytes = new byte[RLocalUtils.GetSizeBGRA(options.outWidth, options.outHeight)];
             transcoder.AllocEncoder();
             transcoder.AllocDecoder();
-            renderer = new RLocalRenderer(options.outWidth, options.outHeight);
+
+            videoCapture.Capture((sender, e) =>
+            {
+                EncodeAndBroadcastFrame();
+            });
+
+            //DecodedBytes = new byte[RLocalUtils.GetSizeBGRA(options.outWidth, options.outHeight)];
+
+            //renderer = new RLocalRenderer(options.outWidth, options.outHeight);
+
+            PrepareVJoy();
 
             if (options.enableSound)
             {
-                audioCapture = new RLocalAudioCapture();
-                audioCapture.StartCapture();
+                audioCapture = new RLocalAudioCapture((bytes, size) =>
+                {
+                    BinaryWriter writer = new BinaryWriter(new MemoryStream());
+                    writer.Write(21);
+                    writer.Write(size);
+                    writer.Write(bytes);
+
+                    BinaryReader reader = new BinaryReader(writer.BaseStream);
+                    reader.BaseStream.Position = 0;
+                    int packetSize = sizeof(int) * 2 + size;
+                    byte[] packet = reader.ReadBytes(packetSize);
+                    connection.BroadcastBytes(packet, packetSize);
+                });
             }
 
-            connection.StartServer(options.bindAddress, options.port, new RunWorkerCompletedEventHandler(NewClientHandler));
-            PrepareVJoy();
-            AsyncEncodeForever();
-            renderer.Start();
+            //renderer.Start();
         }
 
         private void AllocTranscoderContext()
@@ -109,7 +156,9 @@ namespace DesktopDup
 
         private void NewClientHandler(object sender, RunWorkerCompletedEventArgs eargs)
         {
-            Client client = (Client)eargs.Result;
+            var client = (RLocalClient)eargs.Result;
+
+            vjoy.AcquireDevice((uint)client.playerId);
 
             byte[] optionsPacket = BuildOptionsPacket();
             client.stream.Write(optionsPacket, 0, optionsPacket.Length);
@@ -158,43 +207,27 @@ namespace DesktopDup
 
         private void PacketHandler(object sender, RunWorkerCompletedEventArgs eargs)
         {
+            if (eargs.Result == null) return;
             RLocalIncomingMessage message = (RLocalIncomingMessage)eargs.Result;
-
-            //Console.WriteLine("GOT PACKET: " + message.type);
-            //if (message.bytes == null) Console.WriteLine("BYTES NULL");
             switch (message.type)
             {
-                case 3:
-                    ///Console.WriteLine("DECODED!?!?!?");
-                    if (renderer == null)
-                    {
-                        Console.WriteLine("RENDERER NULL");
-                        break;
-                    }
-                    //Console.WriteLine("YEE");
+                case 3: // Frame
+                    if (renderer == null) break;
                     DecodeFrame(message.bytes, renderer.RenderBuffer);
                     break;
-                case 9:
+                case 9: // Button
                     RLocalButtonState buttonState = RLocalButtonState.FromPacket(message.bytes);
-                    //buttonState.Print();
-                    vjoy.SetButtonState(1, buttonState.button, buttonState.value);
+                    vjoy.SetButtonState((uint)message.playerId, buttonState.button, buttonState.value);
                     break;
-                case 20:
-                    var format = RLocalAudioCapture.WaveFormatFromPacket(message.bytes);
-                    audioCapture = new RLocalAudioCapture();
-                    //audioPlayback = new RLocalAudioPlayback(audioCapture.capture.WaveFormat);
-                    audioPlayback = new RLocalAudioPlayback(format);
-                    audioPlayback.Play(0);
+                case 20: // Audio Format
+                    var waveFormat = RLocalAudioCapture.WaveFormatFromPacket(message.bytes);
+                    audioPlayback = new RLocalAudioPlayback(waveFormat);
                     break;
-                case 21:
-                    if (audioPlayback == null)
-                    {
-                        Console.WriteLine("AUDIO NULL");
-                        break;
-                    }
-                    audioPlayback.Write(message.bytes);
+                case 21: // Audio Data
+                    if (audioPlayback == null) break;
+                    audioPlayback.Write(message.bytes, 8, message.bytes.Length - 8);
                     break;
-                case 45:
+                case 45: // Video Format
                     options.outWidth = BitConverter.ToInt32(message.bytes, 8);
                     options.outHeight = BitConverter.ToInt32(message.bytes, 12);
 
@@ -208,7 +241,6 @@ namespace DesktopDup
         }
 
         delegate void StartRenderCallback();
-
         private void StartRender()
         {
             if (renderer.renderForm.InvokeRequired)
@@ -225,22 +257,22 @@ namespace DesktopDup
         private void PrepareVJoy()
         {
             vjoy = new RLocalVJoy();
-            vjoy.AcquireDevice(1);
         }
 
         private async void AsyncProcessInputs()
         {
             await Task.Delay(100);
 
-            RLocalGamepadInput input = new RLocalGamepadInput();
-            var gamepads = input.GetAvailableGamepads();
-            input.PrintGamepads(gamepads);
-            input.AssignGamepad(gamepads[0]);
+            //RLocalGamepadInput input = new RLocalGamepadInput();
+            //var gamepads = RLocalInputManager.DiscoverInputDevices();
+            //gamepads.ForEach
+            ////input.PrintGamepads(gamepads);
+            //input.AssignGamepad(gamepads[0]);
 
             BackgroundWorker worker = new BackgroundWorker();
             worker.DoWork += new DoWorkEventHandler((object sender, DoWorkEventArgs ea) =>
             {
-                List<RLocalButtonState> buttonStates = input.PollInputs();
+                List<RLocalButtonState> buttonStates = inputManager.PollInputs();
                 foreach (var buttonState in buttonStates)
                 {
                     byte[] packet = buttonState.ToPacket();
@@ -255,11 +287,13 @@ namespace DesktopDup
             worker.RunWorkerAsync();
         }
 
+        /*
         private void AsyncEncodeForever()
         {
             Task.Delay(10).Wait();
-            long processTime = 0;
+            return;
 
+            long processTime = 0;
             BackgroundWorker EncoderWorker = new BackgroundWorker();
             EncoderWorker.DoWork += new DoWorkEventHandler((object sender, DoWorkEventArgs ea) =>
             {
@@ -267,17 +301,6 @@ namespace DesktopDup
                 int size = transcoder.EncodeFrame(videoCapture.FrameBytes, connection.m_writeBuffer);
                 DecodeFrame(connection.m_writeBuffer, renderer.RenderBuffer);
 
-                if (options.enableSound)
-                {
-                    byte[] audioPacket = GetAudioBytes();
-                    if (audioPacket.Length > 0)
-                    {
-                        Buffer.BlockCopy(audioPacket, 0, connection.m_writeBuffer, size, audioPacket.Length);
-                        size += audioPacket.Length;
-                    }
-                }
-
-                //Console.WriteLine("BROADCASTING SIZE: " + size);
                 connection.BroadcastBytes(null, size);
             });
             EncoderWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler((object sender, RunWorkerCompletedEventArgs e) =>
@@ -290,8 +313,9 @@ namespace DesktopDup
             });
             EncoderWorker.RunWorkerAsync();
         }
+        */
 
-        private byte[] GetAudioBytes()
+        /*private byte[] GetAudioBytes()
         {
             byte[] bytes = audioCapture.FlushBuffer();
             int size = bytes.Length;
@@ -306,7 +330,7 @@ namespace DesktopDup
             reader.BaseStream.Position = 0;
             byte[] packet = reader.ReadBytes(sizeof(int) * 2 + size);
             return packet;
-        }
+        }*/
 
         private void ClientButton_Click(object sender, EventArgs e)
         {

@@ -18,7 +18,7 @@ using SharpDX.DXGI;
 using Device = SharpDX.Direct3D11.Device;
 
 
-namespace DesktopDup
+namespace RLocal
 {
     //public partial class Window : Form
     public class RLocalDesktopCapture
@@ -30,20 +30,9 @@ namespace DesktopDup
 
         SharpDX.Direct3D11.Device device;
         SharpDX.Direct3D11.Texture2D screenTexture;
-        private bool continueCapturing = true;
-        BackgroundWorker captureWorker;
-        BackgroundWorker EncoderWorker;
-        BackgroundWorker DecoderWorker;
-
-        private SharpDX.Direct3D11.Device d3dDevice;
-        private SharpDX.Direct3D11.DeviceContext d3dDeviceContext;
-        private SharpDX.DXGI.SwapChain swapChain;
-        private SharpDX.Direct3D11.RenderTargetView renderTargetView;
 
         protected SharpDX.Direct2D1.Device d2dDevice;
         protected SharpDX.Direct2D1.DeviceContext d2dContext;
-        private SharpDX.Direct2D1.Bitmap1 d2dTarget;
-        SharpDX.Direct2D1.RenderTarget d2dRenderTarget;
 
         private System.Threading.Timer TimerItem;
         private System.Threading.Timer TimerItem2;
@@ -57,21 +46,13 @@ namespace DesktopDup
         public TranscoderOptions transcoderOptions;
         IntPtr transcoderOptionsPtr;
 
-        IntPtr transcoderContext;
-
-        IntPtr aKit;
         int framesCapped = 0;
         int framesEncoded = 0;
 
-        bool capturedFrame = false;
-        bool waiting = false;
+        BackgroundWorker captureWorker;
 
         public RLocalDesktopCapture(int outputDeviceIndex)
         {
-            captureWorker = new BackgroundWorker();
-            captureWorker.DoWork += new DoWorkEventHandler(CaptureFrame);
-            captureWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(HandleCapturedFrame);
-
             // # of graphics card adapter
             const int numAdapter = 0;
 
@@ -126,8 +107,16 @@ namespace DesktopDup
             // Duplicate the output
             duplicatedOutput = output1.DuplicateOutput(device);
 
+            StartWorkTimer();
+        }
+
+        public void Capture(RunWorkerCompletedEventHandler handler)
+        {
+            captureWorker = new BackgroundWorker();
+            captureWorker.DoWork += new DoWorkEventHandler(CaptureFrame);
+            captureWorker.RunWorkerCompleted += handler;
+            captureWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(HandleCapturedFrame);
             CaptureFrameAsync();
-            //StartWorkTimer();
         }
 
         public void StartWorkTimer()

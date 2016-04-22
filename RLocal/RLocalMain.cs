@@ -4,7 +4,7 @@ using System.Windows.Forms;
 using System.IO;
 using System.Runtime.InteropServices;
 
-namespace DesktopDup
+namespace RLocal
 {
     /// <summary>
     ///   Screen capture of the desktop using DXGI OutputDuplication.

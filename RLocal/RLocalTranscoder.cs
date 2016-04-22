@@ -26,7 +26,7 @@ public struct TranscoderOptions
     public int OutputHeight;
 }
 
-namespace DesktopDup
+namespace RLocal
 {
     //public partial class Window : Form
     public class RLocalTranscoder
@@ -41,8 +41,6 @@ namespace DesktopDup
 
         bool EncoderAvailable = false;
         bool DecoderAvailable = false;
-
-        BackgroundWorker EncoderWorker;
 
         [DllImport("Transcoder.dll", CallingConvention = CallingConvention.Cdecl)]
         static extern IntPtr AllocContext(IntPtr transcoderOptions);
@@ -91,6 +89,7 @@ namespace DesktopDup
         public void AllocEncoder()
         {
             AllocEncoder(transcoderContext);
+            EncoderAvailable = true;
         }
 
         public void AllocDecoder()
@@ -109,6 +108,7 @@ namespace DesktopDup
 
         public int EncodeFrame(byte[] InputBytes, byte[] OutputPacket)
         {
+            if (!EncoderAvailable) return 0;
             return EncodeFrame(transcoderContext, InputBytes, OutputPacket);
         }
 

@@ -18,7 +18,7 @@ using SharpDX.Direct2D1;
 using SharpDX.DXGI;
 using Device = SharpDX.Direct3D11.Device;
 
-namespace DesktopDup
+namespace RLocal
 {
     public partial class RLocalRenderer : IDisposable
     {
@@ -36,8 +36,6 @@ namespace DesktopDup
         protected SharpDX.Direct2D1.DeviceContext d2dContext;
         private SharpDX.Direct2D1.Bitmap1 d2dTarget;
         SharpDX.Direct2D1.RenderTarget d2dRenderTarget;
-
-        Func<byte[]> RequestFrame;
 
         public RLocalRenderer(int width, int height)
         {
@@ -66,14 +64,14 @@ namespace DesktopDup
             SharpDX.Direct3D11.Device.CreateWithSwapChain(DriverType.Hardware, creationFlags, swapChainDesc, out d3dDevice, out swapChain);
             d3dDeviceContext = d3dDevice.ImmediateContext.QueryInterface<SharpDX.Direct3D11.DeviceContext1>();
 
-            //swapChain.SetFullscreenState(true, null);
+            ConfigureAltEnter();
 
             using (SharpDX.Direct3D11.Texture2D backBuffer = swapChain.GetBackBuffer<SharpDX.Direct3D11.Texture2D>(0))
             {
                 renderTargetView = new SharpDX.Direct3D11.RenderTargetView(d3dDevice, backBuffer);
             }
 
-            System.Drawing.Graphics g = renderForm.CreateGraphics();
+            System.Drawing.Graphics graphics = renderForm.CreateGraphics();
 
             SharpDX.Direct2D1.Factory d2dFactory = new SharpDX.Direct2D1.Factory(SharpDX.Direct2D1.FactoryType.SingleThreaded, SharpDX.Direct2D1.DebugLevel.None);
 
@@ -85,9 +83,10 @@ namespace DesktopDup
             //d2dContext.PrimitiveBlend = PrimitiveBlend.SourceOver;
 
             BitmapProperties1 properties = new BitmapProperties1(new SharpDX.Direct2D1.PixelFormat(Format.B8G8R8A8_UNorm, SharpDX.Direct2D1.AlphaMode.Ignore),
-                g.DpiX, g.DpiY, BitmapOptions.Target | BitmapOptions.CannotDraw);
+                graphics.DpiX, graphics.DpiY, BitmapOptions.Target | BitmapOptions.CannotDraw);
 
             Surface backBuffer2D = swapChain.GetBackBuffer<Surface>(0);
+
             //new SharpDX.Direct2D1.PixelFormat(SharpDX.DXGI.Format.B8G8R8A8_UNorm, SharpDX.Direct2D1.AlphaMode.Premultiplied)
             SharpDX.Direct2D1.RenderTargetProperties rtp = new SharpDX.Direct2D1.RenderTargetProperties(new SharpDX.Direct2D1.PixelFormat(Format.B8G8R8A8_UNorm, SharpDX.Direct2D1.AlphaMode.Ignore));
             d2dRenderTarget = new SharpDX.Direct2D1.RenderTarget(d2dFactory, backBuffer2D, rtp);
@@ -96,6 +95,27 @@ namespace DesktopDup
             d3dDeviceContext.OutputMerger.SetRenderTargets(renderTargetView);
 
             RenderBuffer = new byte[RLocalUtils.GetSizeBGRA(RenderWidth, RenderHeight)];
+        }
+
+        private void ConfigureAltEnter()
+        {
+            // https://katyscode.wordpress.com/2013/08/24/c-directx-api-face-off-slimdx-vs-sharpdx-which-should-you-choose/
+            // Disable automatic ALT+Enter processing because it doesn't work properly with WinForms
+            using (var factory = swapChain.GetParent<SharpDX.DXGI.Factory1>())
+                factory.MakeWindowAssociation(renderForm.Handle, WindowAssociationFlags.IgnoreAltEnter);
+
+            // Add event handler for ALT+Enter
+            renderForm.KeyDown += (o, e) =>
+            {
+                if (e.Alt && e.KeyCode == Keys.Enter)
+                    swapChain.IsFullScreen = !swapChain.IsFullScreen;
+            };
+
+            // Set window size
+            renderForm.Size = new System.Drawing.Size(RenderWidth, RenderHeight);
+
+            // Prevent window from being re-sized
+            renderForm.AutoSizeMode = AutoSizeMode.GrowAndShrink;
         }
 
         public int GetBufferSize()

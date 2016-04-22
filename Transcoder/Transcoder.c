@@ -23,6 +23,7 @@ AVFrame* av_frame;
 AVFrame* av_frame_rgba;
 
 struct SwsContext* convert_context;
+struct SwsContext* convertCtx;
 
 const int HEADER_SIZE = sizeof(int) * 2;
 enum PACKET_TYPE {
@@ -45,6 +46,7 @@ struct TranscoderContext {
 
 void FreeEncoder(x264_t* encoder) {
 	x264_encoder_close(encoder);
+	sws_freeContext(convertCtx);
 }
 
 void FreeFfmpeg(AVCodecContext* ctx) {
@@ -96,6 +98,8 @@ _declspec(dllexport) int __cdecl AllocEncoder(struct TranscoderContext* ctx) {
 
 	x264_t* encoder = x264_encoder_open(&param);
 	ctx->encoder = encoder;
+
+	convertCtx = sws_getContext(options->InputWidth, options->InputHeight, AV_PIX_FMT_RGBA, options->OutputWidth, options->OutputHeight, AV_PIX_FMT_YUV420P, SWS_FAST_BILINEAR, NULL, NULL, NULL);
 
 	return 0;
 }
@@ -203,15 +207,15 @@ _declspec(dllexport) int __cdecl EncodeFrame(struct TranscoderContext* ctx, char
 	int size = 0;
 	int result = 0;
 
-	struct SwsContext* convertCtx = sws_getContext(iWidth, iHeight, AV_PIX_FMT_RGBA, oWidth, oHeight, AV_PIX_FMT_YUV420P, SWS_FAST_BILINEAR, NULL, NULL, NULL);
+	//struct SwsContext* convertCtx = sws_getContext(iWidth, iHeight, AV_PIX_FMT_RGBA, oWidth, oHeight, AV_PIX_FMT_YUV420P, SWS_FAST_BILINEAR, NULL, NULL, NULL);
 	if (!convertCtx) {
-		return;
+		return -1;
 	}
 
 	//data is a pointer to you RGBA structure
 	int srcstride = iWidth * 4; //RGBA stride is just 4*width
 	sws_scale(convertCtx, &bgraInput, &srcstride, 0, iHeight, pic_in.img.plane, pic_in.img.i_stride);
-	sws_freeContext(convertCtx);
+	//sws_freeContext(convertCtx);
 
 	x264_nal_t* nals;
 	int i_nals;
@@ -242,7 +246,8 @@ _declspec(dllexport) int __cdecl EncodeFrame(struct TranscoderContext* ctx, char
 		//memcpy(packetOutput, &apparentSize, sizeof(int));
 	}
 
-	return apparentSize + HEADER_SIZE;
+	int packetSize = apparentSize + HEADER_SIZE;
+	return packetSize;
 }
 
 //_declspec(dllexport) void __cdecl DecodeFrame(struct TranscoderContext* ctx, char* bytes, void* out) {
@@ -254,6 +259,7 @@ _declspec(dllexport) void __cdecl DecodeFrame(struct TranscoderContext* ctx, cha
 	int oWidth = options->OutputWidth;
 	int oHeight = options->OutputHeight;
 	//fprintf(stdout, "Apparent size: %d\n", apparentSize);
+
 
 	//apparentSize = sizeof(uint32_t) * 2 + i;
 

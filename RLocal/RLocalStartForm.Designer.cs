@@ -1,4 +1,4 @@
-﻿namespace DesktopDup
+﻿namespace RLocal
 {
     partial class RLocal
     {
@@ -51,6 +51,8 @@
             this.OptionsTab = new System.Windows.Forms.TabPage();
             this.PortTextBox = new System.Windows.Forms.TextBox();
             this.PortLabel = new System.Windows.Forms.Label();
+            this.InputSourceComboBox = new System.Windows.Forms.ComboBox();
+            this.InputSourceLabel = new System.Windows.Forms.Label();
             this.TabsControl.SuspendLayout();
             this.ClientTab.SuspendLayout();
             this.ServerTab.SuspendLayout();
@@ -87,6 +89,8 @@
             // 
             // ClientTab
             // 
+            this.ClientTab.Controls.Add(this.InputSourceLabel);
+            this.ClientTab.Controls.Add(this.InputSourceComboBox);
             this.ClientTab.Controls.Add(this.HostAddressLabel);
             this.ClientTab.Controls.Add(this.HostAddressTextBox);
             this.ClientTab.Controls.Add(this.ClientButton);
@@ -274,6 +278,23 @@
             this.PortLabel.TabIndex = 0;
             this.PortLabel.Text = "Port";
             // 
+            // InputSourceComboBox
+            // 
+            this.InputSourceComboBox.FormattingEnabled = true;
+            this.InputSourceComboBox.Location = new System.Drawing.Point(95, 49);
+            this.InputSourceComboBox.Name = "InputSourceComboBox";
+            this.InputSourceComboBox.Size = new System.Drawing.Size(144, 21);
+            this.InputSourceComboBox.TabIndex = 7;
+            // 
+            // InputSourceLabel
+            // 
+            this.InputSourceLabel.AutoSize = true;
+            this.InputSourceLabel.Location = new System.Drawing.Point(20, 52);
+            this.InputSourceLabel.Name = "InputSourceLabel";
+            this.InputSourceLabel.Size = new System.Drawing.Size(68, 13);
+            this.InputSourceLabel.TabIndex = 8;
+            this.InputSourceLabel.Text = "Input Source";
+            // 
             // RLocal
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -317,5 +338,7 @@
         private System.Windows.Forms.TextBox OutHeightTextBox;
         private System.Windows.Forms.TextBox OutWidthTextBox;
         private System.Windows.Forms.TextBox FramerateTextBox;
+        private System.Windows.Forms.Label InputSourceLabel;
+        private System.Windows.Forms.ComboBox InputSourceComboBox;
     }
 }
