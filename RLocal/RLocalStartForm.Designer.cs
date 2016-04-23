@@ -33,6 +33,8 @@
             this.BindAddressLabel = new System.Windows.Forms.Label();
             this.TabsControl = new System.Windows.Forms.TabControl();
             this.ClientTab = new System.Windows.Forms.TabPage();
+            this.InputSourceLabel = new System.Windows.Forms.Label();
+            this.InputSourceComboBox = new System.Windows.Forms.ComboBox();
             this.HostAddressLabel = new System.Windows.Forms.Label();
             this.HostAddressTextBox = new System.Windows.Forms.TextBox();
             this.ClientButton = new System.Windows.Forms.Button();
@@ -51,8 +53,7 @@
             this.OptionsTab = new System.Windows.Forms.TabPage();
             this.PortTextBox = new System.Windows.Forms.TextBox();
             this.PortLabel = new System.Windows.Forms.Label();
-            this.InputSourceComboBox = new System.Windows.Forms.ComboBox();
-            this.InputSourceLabel = new System.Windows.Forms.Label();
+            this.ToggleDebugConsoleButton = new System.Windows.Forms.Button();
             this.TabsControl.SuspendLayout();
             this.ClientTab.SuspendLayout();
             this.ServerTab.SuspendLayout();
@@ -101,6 +102,23 @@
             this.ClientTab.TabIndex = 1;
             this.ClientTab.Text = "Client";
             this.ClientTab.UseVisualStyleBackColor = true;
+            // 
+            // InputSourceLabel
+            // 
+            this.InputSourceLabel.AutoSize = true;
+            this.InputSourceLabel.Location = new System.Drawing.Point(20, 52);
+            this.InputSourceLabel.Name = "InputSourceLabel";
+            this.InputSourceLabel.Size = new System.Drawing.Size(68, 13);
+            this.InputSourceLabel.TabIndex = 8;
+            this.InputSourceLabel.Text = "Input Source";
+            // 
+            // InputSourceComboBox
+            // 
+            this.InputSourceComboBox.FormattingEnabled = true;
+            this.InputSourceComboBox.Location = new System.Drawing.Point(95, 49);
+            this.InputSourceComboBox.Name = "InputSourceComboBox";
+            this.InputSourceComboBox.Size = new System.Drawing.Size(144, 21);
+            this.InputSourceComboBox.TabIndex = 7;
             // 
             // HostAddressLabel
             // 
@@ -252,6 +270,7 @@
             // 
             // OptionsTab
             // 
+            this.OptionsTab.Controls.Add(this.ToggleDebugConsoleButton);
             this.OptionsTab.Controls.Add(this.PortTextBox);
             this.OptionsTab.Controls.Add(this.PortLabel);
             this.OptionsTab.Location = new System.Drawing.Point(4, 22);
@@ -278,22 +297,15 @@
             this.PortLabel.TabIndex = 0;
             this.PortLabel.Text = "Port";
             // 
-            // InputSourceComboBox
+            // ToggleDebugConsoleButton
             // 
-            this.InputSourceComboBox.FormattingEnabled = true;
-            this.InputSourceComboBox.Location = new System.Drawing.Point(95, 49);
-            this.InputSourceComboBox.Name = "InputSourceComboBox";
-            this.InputSourceComboBox.Size = new System.Drawing.Size(144, 21);
-            this.InputSourceComboBox.TabIndex = 7;
-            // 
-            // InputSourceLabel
-            // 
-            this.InputSourceLabel.AutoSize = true;
-            this.InputSourceLabel.Location = new System.Drawing.Point(20, 52);
-            this.InputSourceLabel.Name = "InputSourceLabel";
-            this.InputSourceLabel.Size = new System.Drawing.Size(68, 13);
-            this.InputSourceLabel.TabIndex = 8;
-            this.InputSourceLabel.Text = "Input Source";
+            this.ToggleDebugConsoleButton.Location = new System.Drawing.Point(128, 284);
+            this.ToggleDebugConsoleButton.Name = "ToggleDebugConsoleButton";
+            this.ToggleDebugConsoleButton.Size = new System.Drawing.Size(141, 23);
+            this.ToggleDebugConsoleButton.TabIndex = 2;
+            this.ToggleDebugConsoleButton.Text = "Toggle Debug Console";
+            this.ToggleDebugConsoleButton.UseVisualStyleBackColor = true;
+            this.ToggleDebugConsoleButton.Click += new System.EventHandler(this.ToggleDebugConsoleButton_Click);
             // 
             // RLocal
             // 
@@ -340,5 +352,6 @@
         private System.Windows.Forms.TextBox FramerateTextBox;
         private System.Windows.Forms.Label InputSourceLabel;
         private System.Windows.Forms.ComboBox InputSourceComboBox;
+        private System.Windows.Forms.Button ToggleDebugConsoleButton;
     }
 }

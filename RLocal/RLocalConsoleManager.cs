@@ -5,7 +5,16 @@ namespace RLocal
 {
     class RLocalConsoleManager
     {
-        public static void ShowConsoleWindow()
+        const int SW_HIDE = 0;
+        const int SW_SHOW = 5;
+        bool hidden = true;
+
+        public RLocalConsoleManager()
+        {
+
+        }
+
+        public void ShowConsoleWindow()
         {
             var handle = GetConsoleWindow();
 
@@ -19,11 +28,24 @@ namespace RLocal
             }
         }
 
-        //public static void HideConsoleWindow()
-        //{
-        //    var handle = GetConsoleWindow();
-        //    ShowWindow(handle, SW_HIDE);
-        //}
+        public void HideConsoleWindow()
+        {
+            var handle = GetConsoleWindow();
+            ShowWindow(handle, SW_HIDE);
+        }
+
+        public void ToggleConsoleWindow()
+        {
+            hidden = !hidden;
+            if (hidden)
+            {
+                HideConsoleWindow();
+            }
+            else
+            {
+                ShowConsoleWindow();
+            }
+        }
 
         [DllImport("kernel32.dll", SetLastError = true)]
         static extern bool AllocConsole();
@@ -33,8 +55,5 @@ namespace RLocal
 
         [DllImport("user32.dll")]
         static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-
-        const int SW_HIDE = 0;
-        const int SW_SHOW = 5;
     }
 }

@@ -34,6 +34,7 @@ namespace RLocal
         RLocalAudioCapture audioCapture;
         RLocalAudioPlayback audioPlayback;
         RLocalInputManager inputManager;
+        RLocalConsoleManager consoleManager;
 
         RLocalOptions options;
 
@@ -407,6 +408,15 @@ namespace RLocal
             options.outWidth = outWidth;
             options.outHeight = outHeight;
             return true;
+        }
+
+        private void ToggleDebugConsoleButton_Click(object sender, EventArgs e)
+        {
+            if (consoleManager == null)
+            {
+                consoleManager = new RLocalConsoleManager();
+            }
+            consoleManager.ToggleConsoleWindow();
         }
     }
 }
