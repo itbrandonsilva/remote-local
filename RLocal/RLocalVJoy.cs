@@ -13,6 +13,16 @@ namespace RLocal
     {
         private vJoy vjoy;
 
+        public static readonly Dictionary<string, HID_USAGES> MapButtonToAxis = new Dictionary<string, HID_USAGES>
+        {
+            { "X",          HID_USAGES.HID_USAGE_X },
+            { "Y",          HID_USAGES.HID_USAGE_Y },
+            { "Z",          HID_USAGES.HID_USAGE_Z },
+            { "RotationX",  HID_USAGES.HID_USAGE_RX },
+            { "RotationY",  HID_USAGES.HID_USAGE_RY },
+            { "RotationZ",  HID_USAGES.HID_USAGE_RZ },
+        };
+
         public RLocalVJoy()
         {
             vjoy = new vJoy();
@@ -28,35 +38,19 @@ namespace RLocal
             Console.WriteLine("Res: " + res);
         }
 
-        public void SetButtonState(uint id, int button, int value)
+        public void SetButtonState(uint id, string button, int value)
         {
-            if (button < 1000)
+            if (button.Contains("Buttons"))
             {
-                bool res = vjoy.SetBtn(value > 0, id, (uint)button);
+                vjoy.SetBtn(value > 0, id, (uint)RLocalInput.MapButtonToId[button]+1);
             }
-            else
+            else if (button.Contains("PointOfViewControllers"))
             {
-                /*int angle = -1;
-                if (pressed)
-                {
-                    switch (button)
-                    {
-                        case 1000: angle = 0; break;
-                        case 1001: angle = 4500; break;
-                        case 1002: angle = 9000; break;
-                        case 1003: angle = 13500; break;
-                        case 1004: angle = 18000; break;
-                        case 1005: angle = 22500; break;
-                        case 1006: angle = 27000; break;
-                        case 1007: angle = 31500; break;
-                    }
-                }*/
                 vjoy.SetContPov(value, id, 1);
+            } else {
+                var axis = MapButtonToAxis[button];
+                vjoy.SetAxis(value/2, id, axis);
             }
-            //vjoy.SetDiscPov(pressed, id, 1);
-            //vjoy.SetDiscPov(pressed, id, 2);
-            //vjoy.SetDiscPov(pressed, id, 3);
-            //vjoy.SetDiscPov(pressed, id, 4);
         }
 
         public void ValidateHost()

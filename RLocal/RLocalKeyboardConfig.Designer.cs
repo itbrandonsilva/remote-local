@@ -1,11 +1,13 @@
 ﻿namespace RLocal
 {
-    partial class RLocalKeyboardConfig
+    partial class RLocalKeyboardConfigForm
     {
         /// <summary>
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
+
+        RLocalInputMap map;
 
         /// <summary>
         /// Clean up any resources being used.
@@ -22,13 +24,30 @@
 
         #region Windows Form Designer generated code
 
+        private void BuildForm()
+        {
+            RLocalInputMap map = this.keyboardInput.map;
+
+            var startX = 20;
+            var startY = 20;
+
+            var KeyLabel = new System.Windows.Forms.Label();
+            KeyLabel.AutoSize = true;
+            KeyLabel.Location = new System.Drawing.Point(212, 25);
+            KeyLabel.Name = "KeyLabel";
+            KeyLabel.Size = new System.Drawing.Size(27, 13);
+            KeyLabel.TabIndex = 2;
+            KeyLabel.Text = "N/A";
+            this.Controls.Add(KeyLabel);
+        }
+
         /// <summary>
         /// Required method for Designer support - do not modify
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent()
         {
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(RLocalKeyboardConfig));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(RLocalKeyboardConfigForm));
             this.ButtonComboBox = new System.Windows.Forms.ComboBox();
             this.ButtonLabel = new System.Windows.Forms.Label();
             this.KeyLabel = new System.Windows.Forms.Label();
@@ -75,7 +94,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(329, 158);
+            this.ClientSize = new System.Drawing.Size(329, 506);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.KeyLabel);
             this.Controls.Add(this.ButtonLabel);

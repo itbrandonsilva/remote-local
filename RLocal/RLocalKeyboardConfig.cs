@@ -10,13 +10,14 @@ using System.Windows.Forms;
 
 namespace RLocal
 {
-    public partial class RLocalKeyboardConfig : Form
+    public partial class RLocalKeyboardConfigForm : Form
     {
-        public RLocalKeyboardConfig()
-        {
-            InitializeComponent();
-        }
+        RLocalKeyboardInput keyboardInput;
 
-        //public static 
+        public RLocalKeyboardConfigForm(RLocalKeyboardInput keyboardInput)
+        {
+            this.keyboardInput = keyboardInput;
+            InitializeComponent();
+        } 
     }
 }

@@ -1,29 +1,59 @@
 ﻿using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Linq;
 using SharpDX.DirectInput;
 using System.Runtime.InteropServices;
 
 namespace RLocal
 {
+    public class RLocalInputMap : Dictionary<string, int>
+    {
+
+    }
+
+    public struct RLocalGamepadDescription
+    {
+        public string name;
+        public Guid guid;
+    }
+
+    public enum RLocalInputDeviceType
+    {
+        KEYBOARD,
+        GAMEPAD
+    }
+
     public abstract class RLocalInput
     {
-        public RLocalInputMap map;
-
-        public void ApplyMap(RLocalInputMap map)
-        {
-            this.map = map;
-        }
-
-        public void ApplyDefaultMap()
-        {
-            RLocalInputMap map = BuildDefaultMap();
-            ApplyMap(map);
-        }
-
-        public abstract RLocalInputMap BuildDefaultMap();
         public abstract List<RLocalButtonState> PollInputs(bool raw = false);
         public abstract RLocalButtonState PollSingleDownInput();
+
+        public static readonly Dictionary<int, string> MapIdToButton = new Dictionary<int, string>
+        {
+            { 0,  "Buttons0" },
+            { 1,  "Buttons1" },
+            { 2,  "Buttons2" },
+            { 3,  "Buttons3" },
+            { 4,  "Buttons4" },
+            { 5,  "Buttons5" },
+            { 6,  "Buttons6" },
+            { 7,  "Buttons7" },
+            { 8,  "Buttons8" },
+            { 9,  "Buttons9" },
+            { 10, "Buttons10" },
+            { 11, "Buttons11" },
+            { 12, "Buttons12" },
+            { 1000, "X" },
+            { 1001, "Y" },
+            { 1002, "Z" },
+            { 1003, "RotationX" },
+            { 1004, "RotationY" },
+            { 1005, "RotationZ" },
+            { 1100, "PointOfViewControllers0" }
+        };
+
+        public static readonly Dictionary<string, int> MapButtonToId = RLocalInput.MapIdToButton.ToDictionary(p => p.Value, p => p.Key);
     }
 
     public class RLocalButtonState
@@ -61,23 +91,6 @@ namespace RLocal
         {
             Console.WriteLine("Button: " + button + " - " + value + "  (Raw: " + rawInput + ")");
         }
-    }
-
-    public class RLocalInputMap : Dictionary<string, int>
-    {
-
-    }
-
-    public struct RLocalGamepadDescription
-    {
-        public string name;
-        public Guid guid;
-    }
-
-    public enum RLocalInputDeviceType
-    {
-        KEYBOARD,
-        GAMEPAD
     }
 
     public struct RLocalInputDescription

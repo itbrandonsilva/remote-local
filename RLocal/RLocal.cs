@@ -11,6 +11,7 @@ using System.Net;
 using System.Threading;
 using SharpDX.Windows;
 using System.IO;
+using System.Diagnostics;
 
 public struct RLocalOptions
 {
@@ -56,20 +57,15 @@ namespace RLocal
 
             MonitorComboBox.SelectedIndex = 0;
 
+
             inputManager = new RLocalInputManager();
             inputManager.DiscoverInputDevices().ForEach(input =>
             {
                 InputSourceComboBox.Items.Add(input.name);
+                Console.WriteLine(input.name);
+                Debug.WriteLine(input.name);
             });
             InputSourceComboBox.SelectedIndex = 0;
-
-            //var playback = new RLocalAudioCapture();
-
-            //inputManager.AssignDevice(1);
-            //while (true)
-            //{
-            //    inputManager.PollInputs();
-            //}
         }
 
         private void Start(bool server)
@@ -187,11 +183,6 @@ namespace RLocal
             return packet;
         }
 
-        private void AudioCaptureDataHandler(byte[] bytes, int offset, int size)
-        {
-
-        }
-
         private void DecodeFrame(byte[] input, byte[] output)
         {
             transcoder.DecodeFrame(input, output);
@@ -218,7 +209,7 @@ namespace RLocal
                     break;
                 case 9: // Button
                     RLocalButtonState buttonState = RLocalButtonState.FromPacket(message.bytes);
-                    vjoy.SetButtonState((uint)message.playerId, buttonState.button, buttonState.value);
+                    vjoy.SetButtonState((uint)message.playerId, RLocalInput.MapIdToButton[buttonState.button], buttonState.value);
                     break;
                 case 20: // Audio Format
                     var waveFormat = RLocalAudioCapture.WaveFormatFromPacket(message.bytes);
@@ -260,16 +251,8 @@ namespace RLocal
             vjoy = new RLocalVJoy();
         }
 
-        private async void AsyncProcessInputs()
+        private void AsyncProcessInputs()
         {
-            await Task.Delay(100);
-
-            //RLocalGamepadInput input = new RLocalGamepadInput();
-            //var gamepads = RLocalInputManager.DiscoverInputDevices();
-            //gamepads.ForEach
-            ////input.PrintGamepads(gamepads);
-            //input.AssignGamepad(gamepads[0]);
-
             BackgroundWorker worker = new BackgroundWorker();
             worker.DoWork += new DoWorkEventHandler((object sender, DoWorkEventArgs ea) =>
             {
@@ -278,7 +261,7 @@ namespace RLocal
                 {
                     byte[] packet = buttonState.ToPacket();
                     connection.WriteBytes(packet, packet.Length);
-                    buttonState.Print();
+                    //buttonState.Print();
                 }
             });
             worker.RunWorkerCompleted += new RunWorkerCompletedEventHandler((object sender, RunWorkerCompletedEventArgs e) =>
@@ -287,51 +270,6 @@ namespace RLocal
             });
             worker.RunWorkerAsync();
         }
-
-        /*
-        private void AsyncEncodeForever()
-        {
-            Task.Delay(10).Wait();
-            return;
-
-            long processTime = 0;
-            BackgroundWorker EncoderWorker = new BackgroundWorker();
-            EncoderWorker.DoWork += new DoWorkEventHandler((object sender, DoWorkEventArgs ea) =>
-            {
-                processTime = DateTime.Now.Ticks;
-                int size = transcoder.EncodeFrame(videoCapture.FrameBytes, connection.m_writeBuffer);
-                DecodeFrame(connection.m_writeBuffer, renderer.RenderBuffer);
-
-                connection.BroadcastBytes(null, size);
-            });
-            EncoderWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler((object sender, RunWorkerCompletedEventArgs e) =>
-            {
-                long frameTime = 1000 / options.desiredFps;
-                long timeSpent = (DateTime.Now.Ticks - processTime) / 10000;
-                int TimeToWait = (int)Math.Min(frameTime, Math.Max(frameTime - timeSpent, 0));
-                Task.Delay(TimeToWait).Wait();
-                EncoderWorker.RunWorkerAsync();
-            });
-            EncoderWorker.RunWorkerAsync();
-        }
-        */
-
-        /*private byte[] GetAudioBytes()
-        {
-            byte[] bytes = audioCapture.FlushBuffer();
-            int size = bytes.Length;
-            if (size == 0) return new byte[0];
-
-            BinaryWriter writer = new BinaryWriter(new MemoryStream());
-            writer.Write(21);
-            writer.Write(size);
-            writer.Write(bytes);
-
-            BinaryReader reader = new BinaryReader(writer.BaseStream);
-            reader.BaseStream.Position = 0;
-            byte[] packet = reader.ReadBytes(sizeof(int) * 2 + size);
-            return packet;
-        }*/
 
         private void ClientButton_Click(object sender, EventArgs e)
         {
@@ -411,6 +349,11 @@ namespace RLocal
         }
 
         private void ToggleDebugConsoleButton_Click(object sender, EventArgs e)
+        {
+            ToggleConsole();
+        }
+
+        public void ToggleConsole()
         {
             if (consoleManager == null)
             {

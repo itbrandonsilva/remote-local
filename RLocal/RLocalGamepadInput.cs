@@ -19,7 +19,6 @@ namespace RLocal
         {
             directInput = new DirectInput();
             var joystickGuid = Guid.Empty;
-            this.map = BuildDefaultMap();
         }
 
         public static List<RLocalGamepadDescription> GetAvailableGamepads()
@@ -47,6 +46,7 @@ namespace RLocal
         {
             gamepad = new Joystick(directInput, gamepadDesc.guid);
             gamepad.Properties.BufferSize = 128;
+            gamepad.Properties.DeadZone = 250;
             gamepad.Acquire();
         }
 
@@ -56,12 +56,8 @@ namespace RLocal
             JoystickUpdate[] data = gamepad.GetBufferedData();
             foreach (JoystickUpdate update in data)
             {
-                Console.WriteLine(update.Offset + " " + update.Value);
                 RLocalButtonState buttonState = KeyStateToStructure(update, raw);
-                if (buttonState != null)
-                {
-                    buttonStates.Add(buttonState);
-                }
+                buttonStates.Add(buttonState);
             }
             return buttonStates;
         }
@@ -70,11 +66,11 @@ namespace RLocal
         {
             var buttonState = new RLocalButtonState();
             buttonState.value = update.Value;
+            buttonState.rawInput = update.Offset.ToString();
 
-            string buttonName = update.Offset.ToString();
-            buttonState.rawInput = buttonName;
+            buttonState.button = RLocalInput.MapButtonToId[buttonState.rawInput];
 
-            if (!map.TryGetValue(buttonName, out buttonState.button)) return null;
+            //if (!map.TryGetValue(buttonName, out buttonState.button)) return null;
 
             return buttonState;
         }
@@ -82,26 +78,6 @@ namespace RLocal
         public override RLocalButtonState PollSingleDownInput()
         {
             return new RLocalButtonState();
-        }
-
-        public override RLocalInputMap BuildDefaultMap()
-        {
-            RLocalInputMap map = new RLocalInputMap();
-
-            map.Add("Buttons0", 1);                     // X
-            map.Add("Buttons1", 2);                     // A
-            map.Add("Buttons2", 3);                     // B
-            map.Add("Buttons3", 4);                     // Y
-            map.Add("Buttons4", 5);                     // LB
-            map.Add("Buttons5", 6);                     // RB 
-            map.Add("Buttons6", 7);                     // LT
-            map.Add("Buttons7", 8);                     // RT
-            map.Add("Buttons8", 9);                     // Back
-            map.Add("Buttons9", 10);                    // Start
-
-            map.Add("PointOfViewControllers0", 1000);   // Directions
-
-            return map;
         }
 
         public void PrintGamepads(List<RLocalGamepadDescription> devices)
