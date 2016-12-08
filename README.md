@@ -1,7 +1,5 @@
 # RLocal
 
-So what is it...
-
 RLocal provides a way to play classic games (or modern games that don't support multiplayer) over a network in real time. A host will run a RLocal server to broadcast video/audio to clients. Clients would use RLocal to connect to the RLocal host to subscribe to the video/audio feed, while also forwarding Gamepad/Keyboard inputs to the host.
 
 Many more necessary features/functionality in the works:
